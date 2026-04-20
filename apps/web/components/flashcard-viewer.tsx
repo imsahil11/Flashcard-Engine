@@ -21,9 +21,13 @@ export function FlashcardViewer({ flashcards }: { flashcards: Flashcard[] }) {
       return;
     }
 
-    await review.mutateAsync({ flashcardId: currentCard.id, rating });
-    setShowAnswer(false);
-    setIndex((current) => Math.min(current + 1, flashcards.length - 1));
+    try {
+      await review.mutateAsync({ flashcardId: currentCard.id, rating });
+      setShowAnswer(false);
+      setIndex((current) => Math.min(current + 1, flashcards.length - 1));
+    } catch {
+      // Error state is managed by React Query; keep current card visible.
+    }
   }
 
   return (

@@ -27,15 +27,21 @@ export function UploadPdf() {
     }
 
     setActiveUploadId(uploadId);
+    let uploadSucceeded = false;
 
     try {
       await upload.mutateAsync({ formData, uploadId });
+      uploadSucceeded = true;
+    } catch {
+      // Error state is surfaced by React Query through upload.error.
     } finally {
       window.setTimeout(() => setActiveUploadId(null), 2500);
     }
 
-    setTitle('');
-    setFile(null);
+    if (uploadSucceeded) {
+      setTitle('');
+      setFile(null);
+    }
   }
 
   return (
