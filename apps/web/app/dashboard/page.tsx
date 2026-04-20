@@ -325,7 +325,7 @@ export default function DashboardPage() {
 
                 <div className="rounded-3xl border border-[var(--fm-line)] bg-white p-5 shadow-[0_12px_24px_rgba(13,13,13,0.05)]">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fm-muted)]">Top priority</p>
-                  <p className="mt-2 line-clamp-1 font-[var(--font-display)] text-3xl leading-tight">
+                  <p className="mt-2 break-words font-[var(--font-display)] text-xl leading-snug line-clamp-2">
                     {metrics.hottestDeck ?? 'No active deck yet'}
                   </p>
                   <Link
@@ -775,11 +775,11 @@ function DeckCard({ deck, index }: { deck: Deck; index: number }) {
         transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
       />
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-xs uppercase tracking-[0.14em] text-[var(--fm-muted)]">{createdAt}</p>
-          <h3 className="mt-2 line-clamp-2 font-[var(--font-display)] text-3xl leading-tight">{deck.title}</h3>
+          <h3 className="mt-2 break-words font-[var(--font-display)] text-xl leading-snug line-clamp-3">{deck.title}</h3>
         </div>
-        <span className="rounded-full bg-[var(--fm-indigo)]/10 px-3 py-1 text-xs font-semibold text-[var(--fm-indigo)]">
+        <span className="shrink-0 rounded-full bg-[var(--fm-indigo)]/10 px-3 py-1 text-xs font-semibold text-[var(--fm-indigo)]">
           {progress.reviewsNeeded} due
         </span>
       </div>

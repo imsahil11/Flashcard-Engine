@@ -259,11 +259,11 @@ function ReviewDeckCard({ deck, index }: { deck: Deck; index: number }) {
       className="group rounded-3xl border border-[var(--fm-line)] bg-white p-5 shadow-[0_12px_24px_rgba(13,13,13,0.05)]"
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-xs uppercase tracking-[0.14em] text-[var(--fm-muted)]">{createdAt}</p>
-          <h3 className="mt-2 line-clamp-2 font-[var(--font-display)] text-3xl leading-tight">{deck.title}</h3>
+          <h3 className="mt-2 break-words font-[var(--font-display)] text-xl leading-snug line-clamp-3">{deck.title}</h3>
         </div>
-        <span className="rounded-full bg-[var(--fm-indigo)]/10 px-3 py-1 text-xs font-semibold text-[var(--fm-indigo)]">
+        <span className="shrink-0 rounded-full bg-[var(--fm-indigo)]/10 px-3 py-1 text-xs font-semibold text-[var(--fm-indigo)]">
           {progress.reviewsNeeded} due
         </span>
       </div>

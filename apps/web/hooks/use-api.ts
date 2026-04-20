@@ -130,3 +130,15 @@ export function useReview() {
     },
   });
 }
+
+export function useGenerateTeacherNotes(deckId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<Deck>(`/decks/${deckId}/teacher-notes`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deck', deckId] });
+      queryClient.invalidateQueries({ queryKey: ['decks'] });
+    },
+  });
+}

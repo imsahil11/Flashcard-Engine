@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, BookOpenText, Clock3, Sparkles } from 'lucide-react';
 import { FlashcardViewer } from '../../../components/flashcard-viewer';
 import { TeacherNotesPanel } from '../../../components/teacher-notes-panel';
-import { useDeck, useFlashcards } from '../../../hooks/use-api';
+import { useDeck, useFlashcards, useGenerateTeacherNotes } from '../../../hooks/use-api';
 import { useAuthStore } from '../../../store/use-app-store';
 
 const instrumentSerif = Instrument_Serif({
@@ -36,6 +36,7 @@ export default function DeckPage({ params }: { params: { id: string } }) {
 
   const deckQuery = useDeck(params.id);
   const flashcardsQuery = useFlashcards(params.id);
+  const generateNotes = useGenerateTeacherNotes(params.id);
 
   const deck = deckQuery.data;
   const flashcards = flashcardsQuery.data;
@@ -101,16 +102,27 @@ export default function DeckPage({ params }: { params: { id: string } }) {
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="rounded-[34px] border border-[var(--fm-line)] bg-white px-6 py-8 shadow-[0_22px_52px_rgba(13,13,13,0.06)] md:px-10"
         >
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          {/* ── Nav row ── */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--fm-line)] bg-[var(--fm-bg-soft)] px-4 py-2 text-sm font-semibold text-[var(--fm-text)] shadow-[0_2px_8px_rgba(13,13,13,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(13,13,13,0.1)]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Dashboard
+            </Link>
+            <Link
+              href="/review"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--fm-indigo)] px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(91,79,232,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(91,79,232,0.45)]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Review Studio
+            </Link>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <Link
-                href="/review"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--fm-indigo)]"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to review studio
-              </Link>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fm-muted)]">Deck Session</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fm-muted)]">Deck Session</p>
               <h1 className="mt-3 max-w-4xl font-[var(--font-display)] text-5xl leading-[0.95] md:text-7xl">
                 {deck?.title ?? 'Deck review'}
               </h1>
@@ -125,6 +137,7 @@ export default function DeckPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </motion.section>
+
 
         {(deckQuery.isLoading || flashcardsQuery.isLoading) ? (
           <div className="grid gap-4">
@@ -151,7 +164,11 @@ export default function DeckPage({ params }: { params: { id: string } }) {
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          <TeacherNotesPanel notes={deck?.teacherNotes} />
+          <TeacherNotesPanel
+            notes={deck?.teacherNotes}
+            isGenerating={generateNotes.isPending}
+            onGenerate={() => generateNotes.mutate()}
+          />
         </motion.section>
 
         <motion.section

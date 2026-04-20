@@ -108,6 +108,7 @@ router.post('/', requireAuth, upload.single('file'), async (req, res, next) => {
         title: req.body.title || req.file.originalname.replace(/\.pdf$/i, ''),
         description: req.body.description || 'Generated from uploaded PDF',
         teacherNotes,
+        sourceText: text,   // persist raw PDF text for teacher-notes regeneration
         userId: user.id,
         flashcards: {
           create: flashcards.map((card) => ({

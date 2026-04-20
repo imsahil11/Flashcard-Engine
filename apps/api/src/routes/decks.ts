@@ -5,7 +5,8 @@ import { FLASHCARD_CARD_TYPES, type DeckTaxonomySummary, type ReviewRating, type
 import { calculateNextReview } from '@flashcard/utils';
 import { requireAuth, type AuthenticatedRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/error.js';
-import { teacherNotesSchema } from '../services/teacher-notes.service.js';
+import { teacherNotesReadSchema, generateTeacherNotes } from '../services/teacher-notes.service.js';
+
 
 const router = Router();
 
@@ -188,6 +189,62 @@ router.get('/:id/flashcards', async (req, res, next) => {
     }
 
     res.json({ data: deck.flashcards });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Generate (or regenerate) teacher notes for an existing deck.
+// Uses stored PDF source text if available; falls back to flashcard Q&A reconstruction for legacy decks.
+router.post('/:id/teacher-notes', async (req, res, next) => {
+  try {
+    const { user } = req as unknown as AuthenticatedRequest;
+    const deck = await prisma.deck.findFirst({
+      where: { id: req.params.id, userId: user.id },
+      include: {
+        flashcards: {
+          select: { question: true, answer: true, context: true, cardType: true },
+          orderBy: { cardType: 'asc' },
+        },
+      },
+    });
+
+    if (!deck) {
+      throw new AppError('Deck not found', 404);
+    }
+
+    // Prefer the real extracted PDF text stored at upload time.
+    // Fall back to Q&A reconstruction only for decks created before source_text was persisted.
+    const sourceText = deck.sourceText?.trim()
+      ? deck.sourceText
+      : [
+          `Deck title: ${deck.title}`,
+          deck.description ? `Description: ${deck.description}` : '',
+          '',
+          'Cards from this material:',
+          '',
+          ...deck.flashcards.map((card, i) =>
+            [
+              `Card ${i + 1} [${card.cardType}]`,
+              `Q: ${card.question}`,
+              `A: ${card.answer}`,
+              card.context ? `Context: ${card.context}` : '',
+            ]
+              .filter(Boolean)
+              .join('\n'),
+          ),
+        ]
+          .filter(Boolean)
+          .join('\n');
+
+    const notes = await generateTeacherNotes(sourceText);
+
+    const updated = await prisma.deck.update({
+      where: { id: deck.id },
+      data: { teacherNotes: notes },
+    });
+
+    res.json({ data: { ...updated, teacherNotes: notes } });
   } catch (error) {
     next(error);
   }
@@ -378,6 +435,7 @@ function parseTeacherNotes(value: Prisma.JsonValue | null): TeacherNotes | null 
     return null;
   }
 
-  const parsed = teacherNotesSchema.safeParse(value);
+  // Use the permissive read schema so notes with any content length are accepted.
+  const parsed = teacherNotesReadSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
 }
