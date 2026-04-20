@@ -19,6 +19,10 @@ type AppState = {
   setHasHydrated: (hasHydrated: boolean) => void;
 };
 
+function isJwtLike(token: string) {
+  return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token);
+}
+
 export const useAuthStore = create<AppState>()(
   persist(
     (set) => ({
@@ -39,6 +43,11 @@ export const useAuthStore = create<AppState>()(
       name: 'flashcard-engine-session',
       partialize: (state) => ({ token: state.token, user: state.user }),
       onRehydrateStorage: () => (state) => {
+        const persistedToken = state?.token;
+        if (persistedToken && !isJwtLike(persistedToken)) {
+          state?.logout();
+        }
+
         state?.setHasHydrated(true);
       },
     },

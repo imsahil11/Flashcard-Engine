@@ -178,7 +178,7 @@ export default function DeckPage({ params }: { params: { id: string } }) {
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
           className="rounded-[30px] border border-[var(--fm-line)] bg-white p-5 shadow-[0_18px_40px_rgba(13,13,13,0.05)] md:p-6"
         >
-          {flashcards ? <FlashcardViewer flashcards={flashcards} /> : null}
+          {flashcards ? <FlashcardViewer flashcards={flashcards} notes={deck?.teacherNotes ?? null} /> : null}
         </motion.section>
       </main>
     </div>

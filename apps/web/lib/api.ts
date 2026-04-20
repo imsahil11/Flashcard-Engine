@@ -3,6 +3,10 @@ import { useAuthStore } from '../store/use-app-store';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace(/\/$/, '');
 
+function looksLikeJwt(token: string) {
+  return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token);
+}
+
 export class ApiClientError extends Error {
   constructor(
     message: string,
@@ -13,7 +17,14 @@ export class ApiClientError extends Error {
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = useAuthStore.getState().token;
+  const authState = useAuthStore.getState();
+  let token = authState.token;
+
+  if (token && !looksLikeJwt(token)) {
+    authState.logout();
+    token = null;
+  }
+
   const headers = new Headers(init.headers);
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const requestUrl = `${API_URL}${normalizedPath}`;
@@ -43,6 +54,11 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   const payload = (await response.json().catch(() => ({}))) as Partial<ApiEnvelope<T>> & {
     message?: string;
   };
+
+  if (response.status === 401) {
+    useAuthStore.getState().logout();
+    throw new ApiClientError(payload.message ?? 'Session expired. Please log in again.', 401);
+  }
 
   if (!response.ok) {
     throw new ApiClientError(payload.message ?? 'Request failed', response.status);

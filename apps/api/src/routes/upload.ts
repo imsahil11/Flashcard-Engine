@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { prisma } from '@flashcard/database';
+import { prisma, Prisma } from '@flashcard/database';
 import type { FlashcardCardType } from '@flashcard/types';
 import { requireAuth, type AuthenticatedRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/error.js';
@@ -38,7 +38,15 @@ router.get('/progress/:uploadId', requireAuth, (req, res) => {
   const progress = getUploadProgress(user.id, uploadId);
 
   if (!progress) {
-    return res.status(404).json({ message: 'Upload progress not found' });
+    return res.json({
+      data: {
+        uploadId,
+        stage: 'queued',
+        message: 'Waiting for upload to start...',
+        progressPercent: 0,
+        updatedAt: new Date().toISOString(),
+      },
+    });
   }
 
   return res.json({ data: progress });
@@ -94,7 +102,7 @@ router.post('/', requireAuth, upload.single('file'), async (req, res, next) => {
         updateUploadProgress(user.id, uploadId, progress),
     });
     if (flashcards.length === 0) {
-      throw new AppError('Unable to generate flashcards from this PDF', 422);
+      throw new AppError('AI generation service is temporarily unavailable. Please retry this upload shortly.', 503);
     }
 
     updateUploadProgress(user.id, uploadId, {
@@ -103,25 +111,24 @@ router.post('/', requireAuth, upload.single('file'), async (req, res, next) => {
       progressPercent: 90,
     });
 
-    const deck = await prisma.deck.create({
-      data: {
-        title: req.body.title || req.file.originalname.replace(/\.pdf$/i, ''),
-        description: req.body.description || 'Generated from uploaded PDF',
-        teacherNotes,
-        sourceText: text,   // persist raw PDF text for teacher-notes regeneration
-        userId: user.id,
-        flashcards: {
-          create: flashcards.map((card) => ({
-            question: card.front,
-            answer: card.back,
-            cardType: card.cardType,
-            context: card.context,
-            difficulty: difficultyFromCardType(card.cardType),
-          })),
-        },
+    const deckInput = {
+      title: req.body.title || req.file.originalname.replace(/\.pdf$/i, ''),
+      description: req.body.description || 'Generated from uploaded PDF',
+      teacherNotes,
+      sourceText: text,
+      userId: user.id,
+      flashcards: {
+        create: flashcards.map((card) => ({
+          question: card.front,
+          answer: card.back,
+          cardType: card.cardType,
+          context: card.context,
+          difficulty: difficultyFromCardType(card.cardType),
+        })),
       },
-      include: { flashcards: true },
-    });
+    };
+
+    const deck = await createDeckWithSourceFallback(deckInput);
 
     updateUploadProgress(user.id, uploadId, {
       stage: 'completed',
@@ -144,8 +151,14 @@ router.post('/', requireAuth, upload.single('file'), async (req, res, next) => {
 export { router as uploadRouter };
 
 function queueUploadJob(payload: { userId: string; filename: string; queuedAt: string }) {
+  const queue = getPdfQueue();
+  if (!queue) {
+    logger.info({ filename: payload.filename }, 'PDF queue unavailable; continuing without enqueue');
+    return;
+  }
+
   void Promise.race([
-    getPdfQueue().add('uploaded', payload),
+    queue.add('uploaded', payload),
     new Promise((_, reject) => {
       setTimeout(() => reject(new Error('PDF queue enqueue timed out')), 1_500);
     }),
@@ -168,5 +181,43 @@ function difficultyFromCardType(cardType: FlashcardCardType) {
       return 5;
     default:
       return 2;
+  }
+}
+
+async function createDeckWithSourceFallback(
+  data: {
+    title: string;
+    description: string;
+    teacherNotes: Prisma.InputJsonValue;
+    sourceText: string;
+    userId: string;
+    flashcards: {
+      create: Array<{
+        question: string;
+        answer: string;
+        cardType: FlashcardCardType;
+        context: string;
+        difficulty: number;
+      }>;
+    };
+  },
+) {
+  try {
+    return await prisma.deck.create({
+      data,
+      include: { flashcards: true },
+    });
+  } catch (error) {
+    if (!(error instanceof Prisma.PrismaClientValidationError) || !error.message.includes('Unknown argument `sourceText`')) {
+      throw error;
+    }
+
+    logger.warn('Retrying deck creation without sourceText because runtime Prisma client is stale');
+    const { sourceText: _sourceText, ...fallbackData } = data;
+
+    return prisma.deck.create({
+      data: fallbackData,
+      include: { flashcards: true },
+    });
   }
 }

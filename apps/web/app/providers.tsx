@@ -11,6 +11,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
           queries: {
             refetchOnWindowFocus: false,
             staleTime: 30_000,
+            retry: (failureCount, error) => {
+              const status = typeof error === 'object' && error !== null && 'status' in error
+                ? Number((error as { status?: unknown }).status)
+                : undefined;
+
+              if (status === 401) {
+                return false;
+              }
+
+              return failureCount < 2;
+            },
           },
         },
       }),

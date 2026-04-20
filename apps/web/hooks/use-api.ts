@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AuthUser, Deck, Flashcard, ReviewRating, UploadProgress } from '@flashcard/types';
+import type { AuthUser, Deck, Flashcard, ReviewRating, StudyQueueCard, UploadProgress } from '@flashcard/types';
 import { ApiClientError, apiFetch } from '../lib/api';
 import { useAuthStore } from '../store/use-app-store';
 
@@ -127,6 +127,32 @@ export function useReview() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['flashcards'] });
       queryClient.invalidateQueries({ queryKey: ['decks'] });
+      queryClient.invalidateQueries({ queryKey: ['study-queue'] });
+    },
+  });
+}
+
+export function useStudyQueue(options: { deckId?: string; limit?: number; newLimit?: number } = {}) {
+  const token = useAuthStore((state) => state.token);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
+
+  return useQuery({
+    queryKey: ['study-queue', options.deckId, options.limit, options.newLimit],
+    enabled: hasHydrated && Boolean(token),
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (options.deckId) {
+        params.set('deckId', options.deckId);
+      }
+      if (typeof options.limit === 'number') {
+        params.set('limit', String(options.limit));
+      }
+      if (typeof options.newLimit === 'number') {
+        params.set('newLimit', String(options.newLimit));
+      }
+
+      const queryString = params.toString();
+      return apiFetch<StudyQueueCard[]>(`/decks/study-queue${queryString ? `?${queryString}` : ''}`);
     },
   });
 }

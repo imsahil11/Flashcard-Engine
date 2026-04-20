@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@flashcard/ui', '@flashcard/types'],
+  transpilePackages: [],
 };
 
 export default nextConfig;

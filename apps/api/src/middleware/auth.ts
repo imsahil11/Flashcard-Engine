@@ -14,7 +14,7 @@ export type AuthenticatedRequest = Request & {
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
     const header = req.headers.authorization;
-    const token = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
+    const token = extractBearerToken(header);
     if (!token) {
       return res.status(401).json({ message: 'Missing authorization token' });
     }
@@ -34,4 +34,17 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   } catch {
     return res.status(401).json({ message: 'Invalid authorization token' });
   }
+}
+
+function extractBearerToken(headerValue: string | undefined) {
+  if (!headerValue) {
+    return undefined;
+  }
+
+  const match = /^Bearer\s+(.+)$/i.exec(headerValue.trim());
+  if (!match?.[1]) {
+    return undefined;
+  }
+
+  return match[1].trim().replace(/^['"]|['"]$/g, '');
 }

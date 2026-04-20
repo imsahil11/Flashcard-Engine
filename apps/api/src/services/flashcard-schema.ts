@@ -8,15 +8,15 @@ export const generatedFlashcardSchema = z.object({
   front: z
     .string()
     .min(12)
-    .max(280),
+    .max(180),
   back: z
     .string()
     .min(20)
-    .max(2_000),
+    .max(420),
   context: z
     .string()
     .min(20)
-    .max(500),
+    .max(260),
 });
 
 export const generatedFlashcardDeckSchema = z
@@ -40,15 +40,18 @@ export const flashcardJsonSchema = {
       },
       front: {
         type: 'string',
+        maxLength: 180,
         description: 'An active-recall question or prompt that can stand alone without the PDF.',
       },
       back: {
         type: 'string',
-        description: 'A detailed answer with the needed explanation, distinctions, and steps.',
+        maxLength: 420,
+        description: 'A concise teacher answer: direct answer first, then short explanation and distinction/check.',
       },
       context: {
         type: 'string',
-        description: 'A short grounding snippet copied or paraphrased from the source chunk.',
+        maxLength: 260,
+        description: 'A short grounding snippet copied or paraphrased from the source chunk (one concise sentence).',
       },
     },
     required: ['cardType', 'front', 'back', 'context'],

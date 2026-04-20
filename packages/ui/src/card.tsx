@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { cn } from './utils';
+import { cn } from './utils.js';
 
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn('rounded-md border border-zinc-200 bg-white shadow-sm', className)} {...props} />;

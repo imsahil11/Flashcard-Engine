@@ -160,12 +160,12 @@ router.get('/study-queue', async (req, res, next) => {
     res.json({
       data: [
         ...dueCards.map(({ flashcard, ...studyData }) => ({
-          ...flashcard,
+          ...sanitizeFlashcardQuestionForResponse(flashcard),
           studyData,
           queueType: 'due' as const,
         })),
         ...newCards.map((flashcard) => ({
-          ...flashcard,
+          ...sanitizeFlashcardQuestionForResponse(flashcard),
           studyData: null,
           queueType: 'new' as const,
         })),
@@ -188,7 +188,7 @@ router.get('/:id/flashcards', async (req, res, next) => {
       throw new AppError('Deck not found', 404);
     }
 
-    res.json({ data: deck.flashcards });
+    res.json({ data: deck.flashcards.map((flashcard) => sanitizeFlashcardQuestionForResponse(flashcard)) });
   } catch (error) {
     next(error);
   }
@@ -438,4 +438,36 @@ function parseTeacherNotes(value: Prisma.JsonValue | null): TeacherNotes | null 
   // Use the permissive read schema so notes with any content length are accepted.
   const parsed = teacherNotesReadSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
+}
+
+function sanitizeFlashcardQuestionForResponse<T extends { question: string }>(flashcard: T): T {
+  const question = sanitizeLegacyQuestionStem(flashcard.question);
+  if (question === flashcard.question) {
+    return flashcard;
+  }
+
+  return {
+    ...flashcard,
+    question,
+  };
+}
+
+function sanitizeLegacyQuestionStem(question: string) {
+  const compact = question.replace(/\s+/g, ' ').trim();
+  if (!compact) {
+    return question;
+  }
+
+  // Fix historical noisy fallback stems like:
+  // In Types of Operating Systems – An Operating System is system software th, what is the key concept ...?
+  const repaired = compact.replace(
+    /^In\s+(.{2,90}?)\s[-–—]\s[^,?]{8,200},\s(what\s+is\s+the\s+key\s+concept\s+a\s+student\s+must\s+be\s+able\s+to\s+explain\?)$/i,
+    'In $1, $2',
+  );
+
+  if (/^In\s+[^,?]*\b(is|are|was|were|has|have)\b[^,?]*,\swhat\s+is\s+the\s+key\s+concept\s+a\s+student\s+must\s+be\s+able\s+to\s+explain\?$/i.test(repaired)) {
+    return 'What is the key idea from this section, and why does it matter?';
+  }
+
+  return repaired;
 }
