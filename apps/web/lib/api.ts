@@ -1,7 +1,7 @@
 import type { ApiEnvelope } from '@flashcard/types';
 import { useAuthStore } from '../store/use-app-store';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace(/\/$/, '');
 
 export class ApiClientError extends Error {
   constructor(
@@ -15,6 +15,8 @@ export class ApiClientError extends Error {
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = useAuthStore.getState().token;
   const headers = new Headers(init.headers);
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const requestUrl = `${API_URL}${normalizedPath}`;
 
   if (!(init.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
@@ -24,10 +26,19 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers,
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(requestUrl, {
+      ...init,
+      headers,
+    });
+  } catch {
+    throw new ApiClientError(
+      `Unable to reach API at ${requestUrl}. Start the API server or set NEXT_PUBLIC_API_URL correctly.`,
+      0,
+    );
+  }
 
   const payload = (await response.json().catch(() => ({}))) as Partial<ApiEnvelope<T>> & {
     message?: string;

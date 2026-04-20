@@ -28,8 +28,12 @@ export function AuthForm({ mode }: Props) {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await mutation.mutateAsync({ email, password });
-    router.replace('/dashboard');
+    try {
+      await mutation.mutateAsync({ email, password });
+      router.replace('/dashboard');
+    } catch {
+      // Error state is surfaced by React Query through mutation.error.
+    }
   }
 
   if (!hasHydrated) {

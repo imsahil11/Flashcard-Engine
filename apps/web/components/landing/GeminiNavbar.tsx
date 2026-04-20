@@ -41,8 +41,6 @@ export const GeminiNavbar: React.FC = () => {
       </div>
 
       <div style={{ 
-        display: 'none', 
-        '@media (min-width: 768px)': { display: 'flex' },
         alignItems: 'center',
         gap: '24px',
         fontWeight: 500,
