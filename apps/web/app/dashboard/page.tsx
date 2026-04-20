@@ -16,12 +16,16 @@ import { animate, motion, useInView } from 'framer-motion';
 import {
   ArrowRight,
   BookOpenText,
+  BrainCircuit,
   Clock3,
   Filter,
+  Flame,
   Layers3,
   LogOut,
   Search,
   Sparkles,
+  Target,
+  TrendingUp,
   Upload,
 } from 'lucide-react';
 import type { Deck, UploadProgress, UploadProgressStage } from '@flashcard/types';
@@ -99,12 +103,22 @@ export default function DashboardPage() {
     const reviewsDue = decks.reduce((sum, deck) => sum + (deck.progress?.reviewsNeeded ?? 0), 0);
     const mastered = decks.reduce((sum, deck) => sum + (deck.progress?.mastered ?? 0), 0);
     const masteryRate = Math.round((mastered / Math.max(totalCards, 1)) * 100);
+    const duePressure = Math.min(100, Math.round((reviewsDue / Math.max(totalCards, 1)) * 100));
+    const learning = decks.reduce((sum, deck) => sum + (deck.progress?.learning ?? 0), 0);
+    const focusRatio = Math.min(100, Math.round((learning / Math.max(totalCards, 1)) * 100));
+
+    const hottestDeck = [...decks]
+      .sort((a, b) => (b.progress?.reviewsNeeded ?? 0) - (a.progress?.reviewsNeeded ?? 0))[0]
+      ?.title;
 
     return {
       deckCount: decks.length,
       totalCards,
       reviewsDue,
       masteryRate,
+      duePressure,
+      focusRatio,
+      hottestDeck,
     };
   }, [decks]);
 
@@ -134,6 +148,14 @@ export default function DashboardPage() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }, [decks, search, sortMode]);
+
+  const priorityDecks = useMemo(
+    () =>
+      [...decks]
+        .sort((a, b) => (b.progress?.reviewsNeeded ?? 0) - (a.progress?.reviewsNeeded ?? 0))
+        .slice(0, 3),
+    [decks],
+  );
 
   async function onUploadSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -258,7 +280,12 @@ export default function DashboardPage() {
               animate={{ scale: [1, 1.08, 1], opacity: [0.65, 0.95, 0.65] }}
               transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
             />
-            <div className="relative grid gap-8 lg:grid-cols-[1.45fr_360px] lg:items-end">
+            <motion.div
+              className="pointer-events-none absolute -bottom-16 left-[12%] h-40 w-40 rounded-full border border-[var(--fm-indigo)]/20"
+              animate={{ y: [0, -10, 0], opacity: [0.35, 0.75, 0.35] }}
+              transition={{ duration: 6.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <div className="relative grid gap-8 lg:grid-cols-[1.4fr_390px] lg:items-end">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fm-muted)]">
                   Study Command Center
@@ -271,17 +298,44 @@ export default function DashboardPage() {
                   high-clarity workspace.
                 </p>
               </div>
-              <div className="rounded-3xl border border-[var(--fm-line)] bg-[var(--fm-bg-soft)] p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fm-muted)]">Today</p>
-                <p className="mt-3 font-[var(--font-display)] text-4xl leading-none">{metrics.reviewsDue}</p>
-                <p className="mt-2 text-sm text-[var(--fm-muted)]">Cards due for spaced review.</p>
-                <Link
-                  href="/review"
-                  className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--fm-indigo)]"
-                >
-                  Start focused review
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+              <div className="grid gap-4">
+                <div className="rounded-3xl border border-[var(--fm-line)] bg-[var(--fm-bg-soft)] p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fm-muted)]">Queue pressure</p>
+                  <div className="mt-3 grid grid-cols-[88px_1fr] gap-3">
+                    <motion.div
+                      className="relative grid h-[88px] w-[88px] place-items-center rounded-full"
+                      style={{
+                        background: `conic-gradient(var(--fm-indigo) ${metrics.duePressure * 3.6}deg, var(--fm-line) 0deg)`,
+                      }}
+                      animate={{ rotate: [0, 4, 0] }}
+                      transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <div className="grid h-[68px] w-[68px] place-items-center rounded-full bg-white text-sm font-semibold text-[var(--fm-text)]">
+                        {metrics.duePressure}%
+                      </div>
+                    </motion.div>
+                    <div>
+                      <p className="font-[var(--font-display)] text-3xl leading-none">{metrics.reviewsDue}</p>
+                      <p className="mt-2 text-sm leading-6 text-[var(--fm-muted)]">
+                        Cards due now. Keep the queue below 30% for smoother daily sessions.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-[var(--fm-line)] bg-white p-5 shadow-[0_12px_24px_rgba(13,13,13,0.05)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fm-muted)]">Top priority</p>
+                  <p className="mt-2 line-clamp-1 font-[var(--font-display)] text-3xl leading-tight">
+                    {metrics.hottestDeck ?? 'No active deck yet'}
+                  </p>
+                  <Link
+                    href="/review"
+                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--fm-indigo)]"
+                  >
+                    Start focused review
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
               </div>
             </div>
           </section>
@@ -306,6 +360,79 @@ export default function DashboardPage() {
             suffix="%"
           />
         </section>
+
+        <Reveal>
+          <section className="rounded-[30px] border border-[var(--fm-line)] bg-white p-5 shadow-[0_18px_40px_rgba(13,13,13,0.05)] md:p-6">
+            <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
+              <div className="rounded-2xl border border-[var(--fm-line)] bg-[var(--fm-bg-soft)] p-5">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-[var(--fm-indigo)]" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fm-muted)]">Momentum board</p>
+                </div>
+                <h3 className="mt-3 font-[var(--font-display)] text-4xl leading-tight">Learning velocity at a glance</h3>
+                <p className="mt-2 text-sm leading-7 text-[var(--fm-muted)]">
+                  Keep these ratios in range to sustain progress without overload.
+                </p>
+
+                <div className="mt-5 grid gap-4">
+                  <MetricRail
+                    icon={<Target className="h-4 w-4" />}
+                    label="Mastery confidence"
+                    value={metrics.masteryRate}
+                    caption="Strong decks trend above 60%."
+                  />
+                  <MetricRail
+                    icon={<BrainCircuit className="h-4 w-4" />}
+                    label="Active learning load"
+                    value={metrics.focusRatio}
+                    caption="Ideal range is 20-40% in learning state."
+                  />
+                  <MetricRail
+                    icon={<Flame className="h-4 w-4" />}
+                    label="Due queue pressure"
+                    value={metrics.duePressure}
+                    caption="Lower is calmer. Under 30% is excellent."
+                    warn={metrics.duePressure > 40}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[var(--fm-line)] bg-white p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fm-muted)]">Priority queue</p>
+                  <Link href="/review" className="text-xs font-semibold text-[var(--fm-indigo)]">
+                    Open all
+                  </Link>
+                </div>
+
+                <div className="mt-4 grid gap-3">
+                  {priorityDecks.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-[var(--fm-line)] bg-[var(--fm-bg)] px-3 py-6 text-center text-sm text-[var(--fm-muted)]">
+                      Upload a deck to populate your queue.
+                    </div>
+                  ) : (
+                    priorityDecks.map((deck, index) => (
+                      <motion.div
+                        key={deck.id}
+                        initial={{ opacity: 0, x: 16 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true, amount: 0.3 }}
+                        transition={{ duration: 0.45, delay: index * 0.07 }}
+                        className="rounded-xl border border-[var(--fm-line)] bg-[var(--fm-bg-soft)] p-3"
+                      >
+                        <p className="line-clamp-1 text-sm font-semibold text-[var(--fm-text)]">{deck.title}</p>
+                        <div className="mt-1 flex items-center justify-between text-xs text-[var(--fm-muted)]">
+                          <span>{deck.flashcardCount ?? 0} cards</span>
+                          <span>{deck.progress?.reviewsNeeded ?? 0} due</span>
+                        </div>
+                      </motion.div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        </Reveal>
 
         <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
           <Reveal>
@@ -497,15 +624,62 @@ function CountMetric({
     <motion.div
       ref={ref}
       whileHover={{ y: -4 }}
-      className="rounded-3xl border border-[var(--fm-line)] bg-white p-5 shadow-[0_14px_28px_rgba(13,13,13,0.05)]"
+      className="relative overflow-hidden rounded-3xl border border-[var(--fm-line)] bg-white p-5 shadow-[0_14px_28px_rgba(13,13,13,0.05)]"
     >
-      <div className="flex items-center gap-2 text-[var(--fm-muted)]">{icon}</div>
-      <p className="mt-4 font-[var(--font-display)] text-5xl leading-none">
-        {display}
-        {suffix}
-      </p>
-      <p className="mt-2 text-sm text-[var(--fm-muted)]">{label}</p>
+      <motion.div
+        className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[var(--fm-indigo)]/10"
+        animate={{ scale: [1, 1.06, 1], opacity: [0.55, 0.85, 0.55] }}
+        transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <div className="relative">
+        <div className="inline-flex items-center gap-2 rounded-full border border-[var(--fm-line)] bg-[var(--fm-bg-soft)] px-2.5 py-1 text-[var(--fm-muted)]">
+          {icon}
+        </div>
+        <p className="mt-4 font-[var(--font-display)] text-5xl leading-none">
+          {display}
+          {suffix}
+        </p>
+        <p className="mt-2 text-sm text-[var(--fm-muted)]">{label}</p>
+      </div>
     </motion.div>
+  );
+}
+
+function MetricRail({
+  icon,
+  label,
+  value,
+  caption,
+  warn = false,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: number;
+  caption: string;
+  warn?: boolean;
+}) {
+  const clamped = Math.max(0, Math.min(100, value));
+
+  return (
+    <div className="rounded-xl border border-[var(--fm-line)] bg-white p-3">
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <div className="flex items-center gap-2 text-[var(--fm-muted)]">
+          {icon}
+          <span className="font-medium text-[var(--fm-text)]">{label}</span>
+        </div>
+        <span className="font-semibold text-[var(--fm-text)]">{clamped}%</span>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--fm-line)]">
+        <motion.div
+          className={`h-full ${warn ? 'bg-amber-500' : 'bg-[var(--fm-indigo)]'}`}
+          initial={{ width: 0 }}
+          whileInView={{ width: `${clamped}%` }}
+          viewport={{ once: true, amount: 0.5 }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+        />
+      </div>
+      <p className="mt-2 text-xs text-[var(--fm-muted)]">{caption}</p>
+    </div>
   );
 }
 
@@ -592,9 +766,14 @@ function DeckCard({ deck, index }: { deck: Deck; index: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
       transition={{ ...sectionTransition, delay: index * 0.05 }}
-      whileHover={{ y: -4 }}
-      className="group rounded-3xl border border-[var(--fm-line)] bg-[var(--fm-surface)] p-5 shadow-[0_12px_24px_rgba(13,13,13,0.04)]"
+      whileHover={{ y: -6, scale: 1.01 }}
+      className="group relative overflow-hidden rounded-3xl border border-[var(--fm-line)] bg-[var(--fm-surface)] p-5 shadow-[0_12px_24px_rgba(13,13,13,0.04)]"
     >
+      <motion.div
+        className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[var(--fm-indigo)]/10"
+        animate={{ scale: [1, 1.08, 1], opacity: [0.5, 0.85, 0.5] }}
+        transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+      />
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.14em] text-[var(--fm-muted)]">{createdAt}</p>
