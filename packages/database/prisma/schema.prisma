@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FlashcardCardType {
+  Concept
+  Definition
+  Relationship
+  Edge_Case
+  Worked_Example
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  decks     Deck[]
+  studyData StudyData[]
+
+  @@map("users")
+}
+
+model Deck {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  teacherNotes Json?   @map("teacher_notes")
+  userId      String
+  createdAt   DateTime @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flashcards Flashcard[]
+
+  @@index([userId])
+  @@map("decks")
+}
+
+model Flashcard {
+  id         String   @id @default(cuid())
+  question   String
+  answer     String
+  cardType   FlashcardCardType @default(Concept) @map("card_type")
+  context    String   @default("")
+  difficulty Int      @default(0)
+  interval   Int      @default(0)
+  easeFactor Float    @default(2.5)
+  nextReview DateTime @default(now())
+  deckId     String
+
+  deck          Deck            @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  reviewHistory ReviewHistory[]
+  studyData     StudyData[]
+
+  @@index([deckId])
+  @@index([nextReview])
+  @@map("flashcards")
+}
+
+model StudyData {
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  flashcardId    String    @map("flashcard_id")
+  reviewCount    Int       @default(0) @map("review_count")
+  easeFactor     Float     @default(2.5) @map("ease_factor")
+  interval       Int       @default(0)
+  nextReviewDate DateTime  @default(now()) @map("next_review_date")
+  lastReviewedAt DateTime? @map("last_reviewed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flashcard Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, flashcardId])
+  @@index([userId, nextReviewDate])
+  @@index([flashcardId])
+  @@map("study_data")
+}
+
+model ReviewHistory {
+  id          String   @id @default(cuid())
+  rating      Int
+  reviewedAt  DateTime @default(now())
+  flashcardId String
+
+  flashcard Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+
+  @@index([flashcardId])
+  @@map("review_history")
+}

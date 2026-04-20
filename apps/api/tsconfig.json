@@ -1,0 +1,16 @@
+{
+  "extends": "@flashcard/config/tsconfig/base",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "composite": true,
+    "types": ["node", "jest"]
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../../packages/database" },
+    { "path": "../../packages/types" },
+    { "path": "../../packages/utils" }
+  ]
+}

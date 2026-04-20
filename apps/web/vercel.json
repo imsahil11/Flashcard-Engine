@@ -1,0 +1,5 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && npm run build -- --filter=@flashcard/web",
+  "installCommand": "cd ../.. && npm install"
+}

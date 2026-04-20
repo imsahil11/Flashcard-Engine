@@ -1,0 +1,44 @@
+{
+  "name": "ai-flashcard-engine",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@10.8.2",
+  "description": "Production-grade AI flashcard engine monorepo.",
+  "scripts": {
+    "dev": "node scripts/turbo-run.mjs dev",
+    "build": "node scripts/turbo-run.mjs build",
+    "lint": "node scripts/turbo-run.mjs lint",
+    "test": "node scripts/turbo-run.mjs test",
+    "turbo:dev": "turbo dev",
+    "turbo:build": "turbo build",
+    "turbo:lint": "turbo lint",
+    "turbo:test": "turbo test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css,prisma,yml,yaml}\"",
+    "db:migrate": "prisma migrate dev --schema packages/database/prisma/schema.prisma",
+    "db:studio": "prisma studio --schema packages/database/prisma/schema.prisma",
+    "db:generate": "prisma generate --schema packages/database/prisma/schema.prisma"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@esbuild/win32-x64": "^0.27.7",
+    "@flashcard/config": "*",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "prisma": "5.22.0",
+    "turbo": "2.0.9",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@prisma/client": "5.22.0"
+  },
+  "engines": {
+    "node": ">=20.11.0",
+    "npm": ">=10.0.0"
+  }
+}

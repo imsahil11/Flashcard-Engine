@@ -1,0 +1,19 @@
+{
+  "name": "@flashcard/types",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "echo \"No shared type tests yet\""
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}

@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: ai-flashcard-engine-api
+    runtime: docker
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP
+        value: "@flashcard/api"
+      - key: NODE_ENV
+        value: production
+      - key: API_PORT
+        value: 4000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: WEB_ORIGIN
+        sync: false
